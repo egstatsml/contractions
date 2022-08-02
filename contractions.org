@@ -1,4 +1,4 @@
-#+PROPERTY: header-args:jupyter-python  :session  /home/ethan/.local/share/jupyter/runtime/kernel-f129ff30-10e2-462a-bfbe-dcc5a97bdab5.json
+#+PROPERTY: header-args:jupyter-python  :session  /home/ethan/.local/share/jupyter/runtime/kernel-cacfdf90-f711-4ed9-8ec6-2d93cbfef53e.json
 #+title: Contractions
 
 I don't like typing apostrophes. Making my pinky do extra work  and stretching far all the time makes me sad.   This notebook is an attempt to alleviate
@@ -60,48 +60,30 @@ I am going to use python to process this, as am more comfortable with that.
 
     #+RESULTS:
     None
+    None
+
 
     #+begin_src jupyter-python
       import pandas as pd
       import os
-
-      def remove_apostrophe(row):
-          """act on row of dataframe to remove apostrophes.
-
-          Words with apostrophes removed will be placed in the "removed" column.
-
-          Parameters
-          ----------
-          row : pd.Series
-              Row from the dataframe of interest.
-
-          Examples
-          --------
-          FIXME: Add docs.
-          """
-          return row.word.replace("\'", "")
-
-      print("here")
       os.chdir("/home/ethan/code/contractions")
       print(os.getcwd())
       # load in the file with apostrophes
       wikipedia_df = pd.read_csv("./apostrophe_list.txt", sep=" ", names=["word", "frequency"])
       # let's add an empty column to contain the words without apostrophes.
-      wikipedia_df["removed"] = wikipedia_df.apply(remove_apostrophe, axis=1)
       print(wikipedia_df.head())
       print(wikipedia_df.shape)
     #+end_src
 
     #+RESULTS:
-    : here
     : /home/ethan/code/contractions
-    :          word  frequency    removed
-    : 0     women's     503960     womens
-    : 1       men's     354399       mens
-    : 2        it's     228179        its
-    : 3    people's     152424    peoples
-    : 4  children's     137591  childrens
-    : (173030, 3)
+    :          word  frequency
+    : 0     women's     503960
+    : 1       men's     354399
+    : 2        it's     228179
+    : 3    people's     152424
+    : 4  children's     137591
+    : (173030, 2)
     This results in a pretty big list of words with apostrophes. Lets have a look at some them to see what they are like.
     #+begin_src jupyter-python
       import numpy as np
@@ -240,29 +222,94 @@ I am going to use python to process this, as am more comfortable with that.
    I want to first trim down the original list, maybe keep the first 1000 most common. Will then combine and them remove any duplicates.
 
    #+begin_src jupyter-python
-     appostrophe_df = wikipedia_df.iloc[0:1000, :]
+     wikipedia_1000_df = wikipedia_df.iloc[0:1000, :]
      # now lets load in the scowl contractions
-     scowl_df = pd.read_csv(scowl_file, names=["words"])
-     scowl_df['removed'] = 0
+     scowl_df = pd.read_csv(scowl_file, names=["word"])
      scowl_df['frequency'] = 0
      scowl_df.head()
    #+end_src
 
    #+RESULTS:
-   :RESULTS:
-   # [goto error]
-   : [0;31m---------------------------------------------------------------------------[0m
-   : [0;31mNameError[0m                                 Traceback (most recent call last)
-   : Input [0;32mIn [16][0m, in [0;36m<cell line: 1>[0;34m()[0m
-   : [0;32m----> 1[0m appostrophe_df [38;5;241m=[39m [43mwikipedia_df[49m[38;5;241m.[39miloc[[38;5;241m0[39m:[38;5;241m1000[39m, :]
-   : [1;32m      2[0m [38;5;66;03m# now lets load in the scowl contractions [39;00m
-   : [1;32m      3[0m scowl_df [38;5;241m=[39m pd[38;5;241m.[39mread_csv(scowl_file, names[38;5;241m=[39m[[38;5;124m"[39m[38;5;124mwords[39m[38;5;124m"[39m])
-   :
-   : [0;31mNameError[0m: name 'wikipedia_df' is not defined
-   :END:
+   :          word  frequency
+   : 0  Hallowe'en          0
+   : 1      bo's'n          0
+   : 2     bo's'ns          0
+   : 3      bo'sun          0
+   : 4     bo'suns          0
 
 
 Now lets combine them and remove any duplicates.
 #+begin_src jupyter-python
-combined_df = pd.concat([])
+    combined_df = pd.concat([wikipedia_1000_df, scowl_df])
+    combined_df.head()
 #+end_src
+
+#+RESULTS:
+:          word  frequency
+: 0     women's     503960
+: 1       men's     354399
+: 2        it's     228179
+: 3    people's     152424
+: 4  children's     137591
+
+Now lets create a column with the apostrophes removed.
+#+begin_src jupyter-python
+  def remove_apostrophe(row):
+      """act on row of dataframe to remove apostrophes.
+
+      Words with apostrophes removed will be placed in the "removed" column.
+
+      Parameters
+      ----------
+      row : pd.Series
+          Row from the dataframe of interest.
+
+      Examples
+      --------
+      FIXME: Add docs.
+      """
+      return row.word.replace("\'", "")
+
+  combined_df['removed'] = combined_df.apply(remove_apostrophe, axis=1)
+  # want to remove any duplicates
+  combined_df = combined_df.drop_duplicates(subset=['word'])
+  combined_df.head()
+  print(combined_df.iloc[1000::, :])
+#+end_src
+
+#+RESULTS:
+#+begin_example
+  (1196, 3)
+             word  frequency    removed
+  0    Hallowe'en          0  Halloween
+  1        bo's'n          0       bosn
+  2       bo's'ns          0      bosns
+  3        bo'sun          0      bosun
+  4       bo'suns          0     bosuns
+  ..          ...        ...        ...
+  253  wolf'smilk          0  wolfsmilk
+  254       x'ing          0       xing
+  255       ye'se          0       yese
+  256      your'n          0      yourn
+  257    Qur'anic          0    Quranic
+
+  [196 rows x 3 columns]
+  /tmp/ipykernel_60823/1059449099.py:17: SettingWithCopyWarning:
+  A value is trying to be set on a copy of a slice from a DataFrame.
+  Try using .loc[row_indexer,col_indexer] = value instead
+
+  See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+    combined_df['removed'] = combined_df.apply(remove_apostrophe, axis=1)
+#+end_example
+
+I now want to create this into a list that is suitable for abbrev mode within emacs.
+Going to save it to file in suitable elisp format.
+
+#+begin_src jupyter-python
+  # create the abbrev file
+  abbrev_file = "/home/ethan/code/contractions/abbrev_contractions.txt"
+  with open(abbrev_file, 'w') as abb_file:
+     for _, row in combined_df.iterrows():
+        abb_file.writelines(f'(\"{row.removed}\" \"{row.word}\")\n')
+#+end_src
+
